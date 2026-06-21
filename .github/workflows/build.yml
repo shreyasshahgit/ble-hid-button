@@ -1,8 +1,8 @@
-name: Build BLE HID Keyboard
+name: Build BLE HID Keyboard for HolyIoT YJ-17095
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ "main", "master" ]
   pull_request:
 
 jobs:
@@ -10,24 +10,27 @@ jobs:
     runs-on: ubuntu-22.04
 
     container:
-      image: ghcr.io/nrfconnect/sdk-nrf: v2.9.0   # Match your west.yml version
+      image: ghcr.io/nrfconnect/sdk-nrf:v2.9.0
+      options: --user root
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: West Init & Update
+      - name: West Init and Update
         run: |
           west init -l .
-          west update -n
+          west update -n --fetch-opt=--depth=1
 
-      - name: Build
+      - name: Build Firmware
         run: |
-          west build -b holyiot_yj17095 app -- -DCONF_FILE=prj.conf
+          west build -b holyiot_yj17095 app --pristine -- -DCONF_FILE=prj.conf
 
       - name: Upload Firmware
         uses: actions/upload-artifact@v4
         with:
           name: zephyr-ble-hid-keyboard
           path: build/zephyr/zephyr.hex
+          retention-days: 30
