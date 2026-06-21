@@ -6,8 +6,9 @@
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/services/hids.h>
+#include <string.h>
 
-static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios); // or DT_NODELABEL(button_0)
+static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_NODELABEL(button_0), gpios);
 
 static uint8_t hid_report_map[] = {
     0x05, 0x01,        // Usage Page (Generic Desktop)
@@ -43,13 +44,13 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb, u
 {
     if (!connected) return;
 
-    // Press "A" (keycode 0x04)
+    /* Press "A" key */
     uint8_t report[8] = {0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00};
     bt_hids_inp_rep_send(&hids, 0, report, sizeof(report), NULL, NULL);
 
-    k_msleep(50);  // Short press duration
+    k_msleep(50);
 
-    // Release
+    /* Release all keys */
     memset(report, 0, sizeof(report));
     bt_hids_inp_rep_send(&hids, 0, report, sizeof(report), NULL, NULL);
 }
@@ -72,20 +73,27 @@ int main(void)
 {
     int err;
 
-    printk("Starting BLE HID Keyboard\n");
+    printk("BLE HID Keyboard - HolyIoT YJ17095\n");
 
+    /* Button setup */
     if (!device_is_ready(button.port)) {
-        printk("Button not ready\n");
+        printk("Error: Button device not ready\n");
         return 0;
     }
+
     gpio_pin_configure_dt(&button, GPIO_INPUT);
     gpio_pin_interrupt_configure_dt(&button, GPIO_INT_EDGE_TO_ACTIVE);
     gpio_init_callback(&button_cb_data, button_pressed, BIT(button.pin));
     gpio_add_callback(button.port, &button_cb_data);
 
+    /* Bluetooth init */
     err = bt_enable(NULL);
-    if (err) return err;
+    if (err) {
+        printk("Bluetooth init failed (err %d)\n", err);
+        return err;
+    }
 
+    /* HID Service init */
     static const struct bt_hids_init_param hids_init = {
         .report_map = hid_report_map,
         .report_map_size = sizeof(hid_report_map),
@@ -96,9 +104,12 @@ int main(void)
     };
 
     err = bt_hids_init(&hids, &hids_init);
-    if (err) return err;
+    if (err) {
+        printk("HIDS init failed (err %d)\n", err);
+        return err;
+    }
 
-    bt_hids_notify_input(&hids, 0);  // Enable notifications
+    printk("BLE HID Keyboard started. Waiting for connection...\n");
 
     while (1) {
         k_sleep(K_FOREVER);
