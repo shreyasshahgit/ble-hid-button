@@ -1,4 +1,4 @@
-name: Build BLE HID Keyboard
+name: Zephyr BLE HID Keyboard Build
 
 on:
   push:
