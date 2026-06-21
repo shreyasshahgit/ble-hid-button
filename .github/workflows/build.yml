@@ -1,4 +1,4 @@
-name: Build BLE HID Keyboard for HolyIoT YJ-17095
+name: Build BLE HID Keyboard
 
 on:
   push:
@@ -9,21 +9,17 @@ jobs:
   build:
     runs-on: ubuntu-22.04
 
-    container:
-      image: zephyrproject-rtos/ci:zephyr-main
-      options: --user root
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: West Init and Update
-        run: |
-          west init -l .
-          west update -n --fetch-opt=--depth=1
-          west zephyr-export
+      - name: Setup Zephyr
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: app
+          toolchains: arm-zephyr-eabi
 
       - name: Build Firmware
         run: |
